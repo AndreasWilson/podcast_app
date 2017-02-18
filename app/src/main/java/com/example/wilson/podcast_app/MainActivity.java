@@ -3,38 +3,26 @@ package com.example.wilson.podcast_app;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.os.AsyncTask;
-import android.provider.Settings;
-import android.sax.Element;
-import android.sax.RootElement;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.util.Xml;
 import android.view.View;
-import android.widget.Adapter;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
-import com.example.wilson.podcast_app.R;
-
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
-import org.xmlpull.v1.XmlPullParserFactory;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.lang.reflect.Array;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -45,6 +33,8 @@ public class MainActivity extends AppCompatActivity {
     private double finalTime = 0;
     ListView list;
     TextView text;
+    ArrayList<Item> items = new ArrayList<>();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -66,6 +56,35 @@ public class MainActivity extends AppCompatActivity {
                 pod.execute();
             }
         });
+
+        list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Log.d("Position" , "" + position);
+
+                mediaPlayer.reset();
+
+                mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+                try {
+                    mediaPlayer.setDataSource(items.get(position).getLink());
+                    mediaPlayer.prepare();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                mediaPlayer.start();
+
+                finalTime = mediaPlayer.getDuration();
+                startTime = mediaPlayer.getCurrentPosition();
+
+                if (oneTimeOnly == 0) {
+                    seekBar.setMax((int) finalTime);
+                    oneTimeOnly = 1;
+                }
+
+            }
+        });
+
         btnStart.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -89,7 +108,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private class podcastGet extends AsyncTask<String, Void, ArrayList<Item>> {
-        ArrayList<Item> items = new ArrayList<>();
         ArrayList<String> item2 = new ArrayList<>();
 
         @Override
@@ -120,9 +138,6 @@ public class MainActivity extends AppCompatActivity {
 
                 System.out.println("TEST: " + text);
 
-                mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-                //mediaPlayer.setDataSource(items.get(2).getLink());
-                //mediaPlayer.prepare(); // might take long! (for buffering, etc)
                 stream.close();
 
             } catch (Exception e) {
