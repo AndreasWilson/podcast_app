@@ -11,6 +11,7 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -18,8 +19,11 @@ import android.widget.TextView;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
@@ -27,13 +31,13 @@ import java.util.ArrayList;
 public class MainActivity extends AppCompatActivity {
 
     MediaPlayer mediaPlayer;
-    SeekBar seekBar;
+    EditText editText;
     public static int oneTimeOnly = 0;
     private double startTime = 0;
     private double finalTime = 0;
     ListView list;
-    TextView text;
     ArrayList<Item> items = new ArrayList<>();
+    String text = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,17 +47,18 @@ public class MainActivity extends AppCompatActivity {
         Button btnStart = (Button) findViewById(R.id.btnStart);
         Button btnPause = (Button) findViewById(R.id.btnPause);
         list = (ListView) findViewById(R.id.list123);
-        text = (TextView) findViewById(R.id.textView);
-        seekBar = (SeekBar) findViewById(R.id.seekBar3);
-        seekBar.setClickable(false);
         mediaPlayer = new MediaPlayer();
+        editText = (EditText) findViewById(R.id.editText);
 
 
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                podcastGet pod = new podcastGet();
-                pod.execute();
+                //podcastGet pod = new podcastGet();
+                //pod.execute();
+                text = editText.getText().toString();
+                podcastSearch pS = new podcastSearch();
+                pS.execute();
             }
         });
 
@@ -78,7 +83,7 @@ public class MainActivity extends AppCompatActivity {
                 startTime = mediaPlayer.getCurrentPosition();
 
                 if (oneTimeOnly == 0) {
-                    seekBar.setMax((int) finalTime);
+                    //seekBar.setMax((int) finalTime);
                     oneTimeOnly = 1;
                 }
 
@@ -94,7 +99,7 @@ public class MainActivity extends AppCompatActivity {
                 startTime = mediaPlayer.getCurrentPosition();
 
                 if (oneTimeOnly == 0) {
-                    seekBar.setMax((int) finalTime);
+                    //seekBar.setMax((int) finalTime);
                     oneTimeOnly = 1;
                 }
             }
@@ -105,6 +110,37 @@ public class MainActivity extends AppCompatActivity {
                 mediaPlayer.pause();
             }
         });
+    }
+
+    private class podcastSearch extends AsyncTask<String, Void, Void> {
+
+        @Override
+        protected Void doInBackground(String... params) {
+
+            URL url = null;
+            try {
+                url = new URL("https://itunes.apple.com/search?term=" + text);
+                HttpURLConnection http = (HttpURLConnection) url.openConnection();
+                int response = http.getResponseCode();
+                Log.d("Response: ", "" + response);
+                http.connect();
+                InputStream stream = new BufferedInputStream(http.getInputStream());
+                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(stream));
+                StringBuilder builder = new StringBuilder();
+
+                String inputString;
+                while ((inputString = bufferedReader.readLine()) != null) {
+                    builder.append(inputString);
+                }
+                System.out.println(builder);
+
+                stream.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            return null;
+        }
     }
 
     private class podcastGet extends AsyncTask<String, Void, ArrayList<Item>> {
@@ -157,7 +193,6 @@ public class MainActivity extends AppCompatActivity {
             Log.d("ArrayList: ", "" + item2);
             ArrayAdapter<String> arrayAdapter = new ArrayAdapter<>(MainActivity.this, android.R.layout.simple_list_item_1, item2);
             arrayAdapter.notifyDataSetChanged();
-            text.setText("Podcasts!");
             list.setAdapter(arrayAdapter);
         }
     }
