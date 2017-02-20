@@ -1,6 +1,8 @@
 package com.example.wilson.podcast_app;
 
+import android.content.Context;
 import android.media.AudioManager;
+import android.media.Image;
 import android.media.MediaPlayer;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
@@ -8,14 +10,22 @@ import android.os.Bundle;
 import android.util.Log;
 import android.util.Xml;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import com.nostra13.universalimageloader.core.ImageLoader;
+import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 
@@ -32,12 +42,18 @@ public class MainActivity extends AppCompatActivity {
 
     MediaPlayer mediaPlayer;
     EditText editText;
+    TextView podcastName;
     public static int oneTimeOnly = 0;
     private double startTime = 0;
     private double finalTime = 0;
     ListView list;
     ArrayList<Item> items = new ArrayList<>();
     String text = "";
+    String Podcast_url;
+    String imageUri;
+    String trackName;
+    ImageLoader imageLoader;
+    ImageView imageView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,19 +62,45 @@ public class MainActivity extends AppCompatActivity {
         Button button = (Button) findViewById(R.id.button);
         Button btnStart = (Button) findViewById(R.id.btnStart);
         Button btnPause = (Button) findViewById(R.id.btnPause);
+        Button btnSearch = (Button) findViewById(R.id.search_btn);
         list = (ListView) findViewById(R.id.list123);
         mediaPlayer = new MediaPlayer();
         editText = (EditText) findViewById(R.id.editText);
+        imageView = (ImageView) findViewById(R.id.imageView);
+        podcastName = (TextView) findViewById(R.id.podcastname);
+
+        ImageLoaderConfiguration config = new ImageLoaderConfiguration.Builder(this).build();
+        ImageLoader.getInstance().init(config);
+        imageLoader = ImageLoader.getInstance();
+
+        //Removes the keyboard
+        View view = this.getCurrentFocus();
+        if (view != null) {
+            //InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+            //imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+
+            InputMethodManager imm = (InputMethodManager) getSystemService(
+                    INPUT_METHOD_SERVICE);
+            imm.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(), 0);
+        }
+
+        btnSearch.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                text = editText.getText().toString();
+                podcastSearch pS = new podcastSearch();
+                pS.execute();
+                imageLoader.displayImage(imageUri, imageView);
+                podcastName.setText(trackName);
+            }
+        });
 
 
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                //podcastGet pod = new podcastGet();
-                //pod.execute();
-                text = editText.getText().toString();
-                podcastSearch pS = new podcastSearch();
-                pS.execute();
+                podcastGet pod = new podcastGet();
+                pod.execute();
             }
         });
 
@@ -117,6 +159,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected Void doInBackground(String... params) {
 
+            String response2 = "";
             URL url = null;
             try {
                 url = new URL("https://itunes.apple.com/search?term=" + text);
@@ -124,19 +167,34 @@ public class MainActivity extends AppCompatActivity {
                 int response = http.getResponseCode();
                 Log.d("Response: ", "" + response);
                 http.connect();
-                InputStream stream = new BufferedInputStream(http.getInputStream());
-                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(stream));
-                StringBuilder builder = new StringBuilder();
 
-                String inputString;
-                while ((inputString = bufferedReader.readLine()) != null) {
-                    builder.append(inputString);
+
+                String line;
+                BufferedReader br = new BufferedReader(new InputStreamReader(http.getInputStream()));
+                while ((line = br.readLine()) != null) {
+                    response2 += line;
                 }
-                System.out.println(builder);
 
-                stream.close();
+                JSONObject jsonObject = new JSONObject(response2);
+                JSONArray itunesResults = jsonObject.getJSONArray("results");
+
+                for (int i = 0; i < itunesResults.length(); i++) {
+                    JSONObject c = itunesResults.getJSONObject(i);
+
+                    Podcast_url = c.getString("feedUrl");
+                    imageUri = c.getString("artworkUrl600");
+                    trackName = c.getString("trackName");
+                    System.out.println(Podcast_url);
+                    System.out.println(imageUri);
+                }
+                System.out.println(response2);
+
+
+                br.close();
             } catch (IOException e) {
                 e.printStackTrace();
+            } catch (JSONException Je) {
+                Je.printStackTrace();
             }
 
             return null;
@@ -151,7 +209,7 @@ public class MainActivity extends AppCompatActivity {
 
             URL  url = null;
             try {
-                url = new URL("http://yogpod.libsyn.com/rss");
+                url = new URL(Podcast_url);
                 HttpURLConnection http = (HttpURLConnection) url.openConnection();
 
                 int responseCode = http.getResponseCode();
