@@ -1,6 +1,7 @@
 package com.example.wilson.podcast_app;
 
 import android.content.Context;
+import android.content.Intent;
 import android.media.AudioManager;
 import android.media.Image;
 import android.media.MediaPlayer;
@@ -40,12 +41,8 @@ import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
 
-    MediaPlayer mediaPlayer;
     EditText editText;
     TextView podcastName;
-    public static int oneTimeOnly = 0;
-    private double startTime = 0;
-    private double finalTime = 0;
     ListView list;
     ArrayList<Item> items = new ArrayList<>();
     String text = "";
@@ -60,11 +57,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Button button = (Button) findViewById(R.id.button);
-        Button btnStart = (Button) findViewById(R.id.btnStart);
-        Button btnPause = (Button) findViewById(R.id.btnPause);
         Button btnSearch = (Button) findViewById(R.id.search_btn);
         list = (ListView) findViewById(R.id.list123);
-        mediaPlayer = new MediaPlayer();
         editText = (EditText) findViewById(R.id.editText);
         imageView = (ImageView) findViewById(R.id.imageView);
         podcastName = (TextView) findViewById(R.id.podcastname);
@@ -109,47 +103,12 @@ public class MainActivity extends AppCompatActivity {
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 Log.d("Position" , "" + position);
 
-                mediaPlayer.reset();
+                Intent i = new Intent(MainActivity.this, PlayPodcast.class);
+                i.putExtra("MediaStream", items.get(position).getLink());
+                i.putExtra("MediaName", items.get(position).getTitle());
+                i.putExtra("MediaPic", items.get(position).getImg());
+                startActivity(i);
 
-                mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-                try {
-                    mediaPlayer.setDataSource(items.get(position).getLink());
-                    mediaPlayer.prepare();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-                mediaPlayer.start();
-
-                finalTime = mediaPlayer.getDuration();
-                startTime = mediaPlayer.getCurrentPosition();
-
-                if (oneTimeOnly == 0) {
-                    //seekBar.setMax((int) finalTime);
-                    oneTimeOnly = 1;
-                }
-
-            }
-        });
-
-        btnStart.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                mediaPlayer.start();
-
-                finalTime = mediaPlayer.getDuration();
-                startTime = mediaPlayer.getCurrentPosition();
-
-                if (oneTimeOnly == 0) {
-                    //seekBar.setMax((int) finalTime);
-                    oneTimeOnly = 1;
-                }
-            }
-        });
-        btnPause.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                mediaPlayer.pause();
             }
         });
     }
