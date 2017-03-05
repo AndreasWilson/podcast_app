@@ -2,6 +2,7 @@ package com.example.wilson.podcast_app;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.media.AudioManager;
 import android.media.Image;
 import android.media.MediaPlayer;
@@ -16,6 +17,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.GridView;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.SeekBar;
@@ -39,6 +41,9 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 
+import static android.R.attr.delay;
+import static android.R.attr.startDelay;
+
 public class MainActivity extends AppCompatActivity {
 
     EditText editText;
@@ -49,8 +54,10 @@ public class MainActivity extends AppCompatActivity {
     String Podcast_url;
     String imageUri;
     String trackName;
-    ImageLoader imageLoader;
+    String podUrl;
     ImageView imageView;
+    GridView gridView;
+    Button btnStore;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,12 +67,15 @@ public class MainActivity extends AppCompatActivity {
         Button btnSearch = (Button) findViewById(R.id.search_btn);
         list = (ListView) findViewById(R.id.list123);
         editText = (EditText) findViewById(R.id.editText);
-        imageView = (ImageView) findViewById(R.id.imageView);
-        podcastName = (TextView) findViewById(R.id.podcastname);
+        //imageView = (ImageView) findViewById(R.id.imageView);
+        //podcastName = (TextView) findViewById(R.id.podcastname);
+        gridView = (GridView) findViewById(R.id.gridView);
+        btnStore = (Button) findViewById(R.id.btnSave);
 
-        ImageLoaderConfiguration config = new ImageLoaderConfiguration.Builder(this).build();
-        ImageLoader.getInstance().init(config);
-        imageLoader = ImageLoader.getInstance();
+        SharedPreferences sharedpreferences = getSharedPreferences("prefKey", Context.MODE_PRIVATE);
+        String img = sharedpreferences.getString("imgKey", null);
+        podUrl = sharedpreferences.getString("podKey", null);
+        gridView.setAdapter(new ImageAdapter(MainActivity.this, img));
 
         //Removes the keyboard
         View view = this.getCurrentFocus();
@@ -84,8 +94,21 @@ public class MainActivity extends AppCompatActivity {
                 text = editText.getText().toString();
                 podcastSearch pS = new podcastSearch();
                 pS.execute();
-                imageLoader.displayImage(imageUri, imageView);
-                podcastName.setText(trackName);
+                //podcastName.setText(trackName);
+                //gridView.setAdapter(new ImageAdapter(MainActivity.this, imageUri));
+                btnStore.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        SharedPreferences sharedpreferences = getSharedPreferences("prefKey", Context.MODE_PRIVATE);
+                        SharedPreferences.Editor editor = sharedpreferences.edit();
+                        editor.putString("imgKey", imageUri);
+                        editor.putString("titleKey", trackName);
+                        editor.putString("podKey", Podcast_url);
+                        editor.apply();
+                    }
+                });
+
+                System.out.println(imageUri);
             }
         });
 
@@ -108,7 +131,6 @@ public class MainActivity extends AppCompatActivity {
                 i.putExtra("MediaName", items.get(position).getTitle());
                 i.putExtra("MediaPic", items.get(position).getImg());
                 startActivity(i);
-
             }
         });
     }
@@ -168,7 +190,7 @@ public class MainActivity extends AppCompatActivity {
 
             URL  url = null;
             try {
-                url = new URL(Podcast_url);
+                url = new URL(podUrl);
                 HttpURLConnection http = (HttpURLConnection) url.openConnection();
 
                 int responseCode = http.getResponseCode();
@@ -180,16 +202,7 @@ public class MainActivity extends AppCompatActivity {
                 XmlPullParser parser = Xml.newPullParser();
                 parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false);
                 parser.setInput(stream, null);
-
                 items = parseMethod(parser);
-
-                String text = "";
-
-                for (Item item:items) {
-                    text += "Title: " + item.getLink() + "\n"; //+ " Description: " + item.getDesc() + " Img: " + item.getImg() + " URL: " + item.getLink();
-                }
-
-                System.out.println("TEST: " + text);
 
                 stream.close();
 
