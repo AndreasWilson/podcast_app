@@ -23,55 +23,56 @@ import java.util.List;
 
 public class ImageAdapter extends BaseAdapter {
 
-    private String img1;
+    ArrayList<iTunesItem> items;
     private Context mContext;
+    private static LayoutInflater inflater = null;
 
-    public ImageAdapter(Context context, String img){
+    public ImageAdapter(Context context, ArrayList<iTunesItem> items){
         mContext = context;
-        img1 = img;
+        this.items = items;
+        inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
     }
 
     @Override
     public int getCount() {
-        return mThumbIds.length;
+        return items.size();
     }
 
     @Override
     public Object getItem(int position) {
-        return null;
+        return position;
     }
 
     @Override
     public long getItemId(int position) {
-        return 0;
+        return position;
     }
 
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
-        ImageView imageView;
-        TextView textView;
         ImageLoaderConfiguration config = new ImageLoaderConfiguration.Builder(mContext).build();
         ImageLoader.getInstance().init(config);
         ImageLoader imageLoader = ImageLoader.getInstance();
-        if (convertView == null){
-            textView = new TextView(mContext);
-            imageView = new ImageView(mContext);
+        if (convertView == null) {
+            convertView = inflater.inflate(R.layout.layout_grid_item, null);
+        }
+            //TextView textView = (TextView) convertView.findViewById(R.id.tv_emp_id);
+            ImageView imageView = (ImageView) convertView.findViewById(R.id.imageView);
             imageView.setLayoutParams(new GridView.LayoutParams(400, 400));
             imageView.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
             imageView.setMaxHeight(600);
             imageView.setMaxWidth(600);
             imageView.setPadding(8, 8, 8, 8);
-        }
-        else
-        {
-            imageView = (ImageView) convertView;
-        }
-        imageLoader.displayImage(img1, imageView);
-        //imageView.setImageResource(mThumbIds[position]);
-        return imageView;
-    }
 
-    public String[] mThumbIds = {
-            img1
-    };
+        //imageLoader.displayImage(img1, imageView);
+        //imageView.setImageResource(mThumbIds[position]);
+
+
+        iTunesItem item = new iTunesItem();
+        item = items.get(position);
+        //textView.setText("Name: " + item.getName());
+        imageLoader.displayImage(item.getImg(), imageView);
+
+        return convertView;
+    }
 }

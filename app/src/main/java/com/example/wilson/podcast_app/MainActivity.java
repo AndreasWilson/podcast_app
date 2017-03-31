@@ -1,8 +1,11 @@
 package com.example.wilson.podcast_app;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.media.AudioManager;
 import android.media.Image;
 import android.media.MediaPlayer;
@@ -40,6 +43,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.List;
 
 import static android.R.attr.delay;
 import static android.R.attr.startDelay;
@@ -50,6 +54,7 @@ public class MainActivity extends AppCompatActivity {
     TextView podcastName;
     ListView list;
     ArrayList<Item> items = new ArrayList<>();
+    ArrayList<iTunesItem> itunesList;
     String text = "";
     String Podcast_url;
     String imageUri;
@@ -72,10 +77,6 @@ public class MainActivity extends AppCompatActivity {
         gridView = (GridView) findViewById(R.id.gridView);
         btnStore = (Button) findViewById(R.id.btnSave);
 
-        SharedPreferences sharedpreferences = getSharedPreferences("prefKey", Context.MODE_PRIVATE);
-        String img = sharedpreferences.getString("imgKey", null);
-        podUrl = sharedpreferences.getString("podKey", null);
-        gridView.setAdapter(new ImageAdapter(MainActivity.this, img));
 
         //Removes the keyboard
         View view = this.getCurrentFocus();
@@ -99,12 +100,16 @@ public class MainActivity extends AppCompatActivity {
                 btnStore.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        SharedPreferences sharedpreferences = getSharedPreferences("prefKey", Context.MODE_PRIVATE);
-                        SharedPreferences.Editor editor = sharedpreferences.edit();
-                        editor.putString("imgKey", imageUri);
-                        editor.putString("titleKey", trackName);
-                        editor.putString("podKey", Podcast_url);
-                        editor.apply();
+                        /*DBHelper dbHelper = new DBHelper(MainActivity.this);
+                        SQLiteDatabase db = dbHelper.getWritableDatabase();
+                        ContentValues values = new ContentValues();
+                        values.put("name", trackName);
+                        values.put("image", imageUri);
+                        values.put("url", Podcast_url);
+
+                        long newRowId = db.insert("PodCasts", null, values);
+                        System.out.println(newRowId + "In DataBase");*/
+                        getDataBase();
                     }
                 });
 
@@ -133,6 +138,14 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(i);
             }
         });
+    }
+    private void getDataBase() {
+        DBHelper dbHelper = new DBHelper(MainActivity.this);
+        itunesList = new ArrayList<iTunesItem>();
+
+        itunesList = dbHelper.getAllItems();
+        ImageAdapter adapter = new ImageAdapter(MainActivity.this, itunesList);
+        gridView.setAdapter(adapter);
     }
 
     private class podcastSearch extends AsyncTask<String, Void, Void> {
