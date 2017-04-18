@@ -23,13 +23,14 @@ import java.util.List;
 
 public class ImageAdapter extends BaseAdapter {
 
-    ArrayList<iTunesItem> items;
+    private ArrayList<iTunesItem> items;
     private Context mContext;
     private static LayoutInflater inflater = null;
+    private String podURL;
 
-    public ImageAdapter(Context context, ArrayList<iTunesItem> items){
+    public ImageAdapter(Context context, ArrayList<iTunesItem> items2){
         mContext = context;
-        this.items = items;
+        this.items = items2;
         inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
     }
 
@@ -49,29 +50,46 @@ public class ImageAdapter extends BaseAdapter {
     }
 
     @Override
-    public View getView(int position, View convertView, ViewGroup parent) {
+    public View getView(final int position, View convertView, ViewGroup parent) {
         ImageLoaderConfiguration config = new ImageLoaderConfiguration.Builder(mContext).build();
         ImageLoader.getInstance().init(config);
         ImageLoader imageLoader = ImageLoader.getInstance();
         if (convertView == null) {
             convertView = inflater.inflate(R.layout.layout_grid_item, null);
         }
-            //TextView textView = (TextView) convertView.findViewById(R.id.tv_emp_id);
-            ImageView imageView = (ImageView) convertView.findViewById(R.id.imageView);
-            imageView.setLayoutParams(new GridView.LayoutParams(400, 400));
-            imageView.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
-            imageView.setMaxHeight(600);
-            imageView.setMaxWidth(600);
-            imageView.setPadding(8, 8, 8, 8);
+        TextView textView = (TextView) convertView.findViewById(R.id.tv_emp_id);
+        /*ImageView imageView = (ImageView) convertView.findViewById(R.id.imageView);
+        imageView.setLayoutParams(new GridView.LayoutParams(400, 400));
+        imageView.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+        imageView.setMaxHeight(600);
+        imageView.setMaxWidth(600);
+        imageView.setPadding(8, 8, 8, 8);*/
 
         //imageLoader.displayImage(img1, imageView);
         //imageView.setImageResource(mThumbIds[position]);
 
-
         iTunesItem item = new iTunesItem();
         item = items.get(position);
-        //textView.setText("Name: " + item.getName());
-        imageLoader.displayImage(item.getImg(), imageView);
+        textView.setText("Name: " + item.getName());
+
+        textView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                iTunesItem i = new iTunesItem();
+                System.out.println("Gridview: " + items.get(position).getName());
+                //MainActivity main = new MainActivity();
+                //main.podUrl = (items.get(position).getUrl());
+                podURL = (items.get(position).getUrl());
+                System.out.println(items.get(position).getUrl());
+                SharedPreferences sharedPreferences = mContext.getSharedPreferences("URLpref", Context.MODE_PRIVATE);
+                SharedPreferences.Editor editor = sharedPreferences.edit();
+                editor.putString("podURL", podURL);
+                editor.apply();
+                getPodcast podcast = new getPodcast();
+                podcast.execute();
+            }
+        });
+        //imageLoader.displayImage(item.getImg(), imageView);
 
         return convertView;
     }

@@ -26,6 +26,7 @@ import android.widget.ListView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import com.example.wilson.podcast_app.Interface.AsyncInterface;
 import com.nostra13.universalimageloader.core.ImageLoader;
 import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
 
@@ -48,7 +49,7 @@ import java.util.List;
 import static android.R.attr.delay;
 import static android.R.attr.startDelay;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements AsyncInterface {
 
     EditText editText;
     TextView podcastName;
@@ -59,11 +60,10 @@ public class MainActivity extends AppCompatActivity {
     String Podcast_url;
     String imageUri;
     String trackName;
-    String podUrl;
+    String podUrl, podID;
     ImageView imageView;
     GridView gridView;
     Button btnStore;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -73,10 +73,12 @@ public class MainActivity extends AppCompatActivity {
         list = (ListView) findViewById(R.id.list123);
         editText = (EditText) findViewById(R.id.editText);
         //imageView = (ImageView) findViewById(R.id.imageView);
-        //podcastName = (TextView) findViewById(R.id.podcastname);
+        podcastName = (TextView) findViewById(R.id.textViewPodcastName);
         gridView = (GridView) findViewById(R.id.gridView);
         btnStore = (Button) findViewById(R.id.btnSave);
-
+        getDataBase();
+        getPodcast podcast = new getPodcast();
+        podcast.asyncInterface = this;
 
         //Removes the keyboard
         View view = this.getCurrentFocus();
@@ -95,21 +97,23 @@ public class MainActivity extends AppCompatActivity {
                 text = editText.getText().toString();
                 podcastSearch pS = new podcastSearch();
                 pS.execute();
-                //podcastName.setText(trackName);
+                podcastName.setText(trackName);
                 //gridView.setAdapter(new ImageAdapter(MainActivity.this, imageUri));
                 btnStore.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        /*DBHelper dbHelper = new DBHelper(MainActivity.this);
+                        DBHelper dbHelper = new DBHelper(MainActivity.this);
                         SQLiteDatabase db = dbHelper.getWritableDatabase();
                         ContentValues values = new ContentValues();
+                        values.put("id", podID);
                         values.put("name", trackName);
                         values.put("image", imageUri);
                         values.put("url", Podcast_url);
 
-                        long newRowId = db.insert("PodCasts", null, values);
-                        System.out.println(newRowId + "In DataBase");*/
+                        long newRowId = db.insertWithOnConflict("PodCasts", null, values, SQLiteDatabase.CONFLICT_REPLACE);
+                        System.out.println("In DataBase");
                         getDataBase();
+                        db.close();
                     }
                 });
 
@@ -118,13 +122,16 @@ public class MainActivity extends AppCompatActivity {
         });
 
 
-        button.setOnClickListener(new View.OnClickListener() {
+        /*button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                SharedPreferences sharedPreferences = getSharedPreferences("URLpref", Context.MODE_PRIVATE);
+                podUrl = sharedPreferences.getString("podURL", null);
+                System.out.println("URL: " + podUrl);
                 podcastGet pod = new podcastGet();
                 pod.execute();
             }
-        });
+        });*/
 
         list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -146,6 +153,13 @@ public class MainActivity extends AppCompatActivity {
         itunesList = dbHelper.getAllItems();
         ImageAdapter adapter = new ImageAdapter(MainActivity.this, itunesList);
         gridView.setAdapter(adapter);
+    }
+
+    @Override
+    public void processFinish(ArrayList<String> output) {
+        ArrayAdapter<String> arrayAdapter = new ArrayAdapter<>(MainActivity.this, android.R.layout.simple_list_item_1, output);
+        arrayAdapter.notifyDataSetChanged();
+        list.setAdapter(arrayAdapter);
     }
 
     private class podcastSearch extends AsyncTask<String, Void, Void> {
@@ -178,6 +192,7 @@ public class MainActivity extends AppCompatActivity {
                     Podcast_url = c.getString("feedUrl");
                     imageUri = c.getString("artworkUrl600");
                     trackName = c.getString("trackName");
+                    podID = c.getString("trackId");
                     System.out.println(Podcast_url);
                     System.out.println(imageUri);
                 }
@@ -194,88 +209,4 @@ public class MainActivity extends AppCompatActivity {
             return null;
         }
     }
-
-    private class podcastGet extends AsyncTask<String, Void, ArrayList<Item>> {
-        ArrayList<String> item2 = new ArrayList<>();
-
-        @Override
-        protected ArrayList<Item> doInBackground(String... params) {
-
-            URL  url = null;
-            try {
-                url = new URL(podUrl);
-                HttpURLConnection http = (HttpURLConnection) url.openConnection();
-
-                int responseCode = http.getResponseCode();
-                Log.d("ResponseCode: ", "" + responseCode);
-
-                http.connect();
-                InputStream stream = http.getInputStream();
-
-                XmlPullParser parser = Xml.newPullParser();
-                parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false);
-                parser.setInput(stream, null);
-                items = parseMethod(parser);
-
-                stream.close();
-
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-
-            return items;
-        }
-
-        @Override
-        protected void onPostExecute(ArrayList<Item> item) {
-
-            for (int i = 0; i < items.size(); i++) {
-                item2.add(items.get(i).getTitle());
-            }
-
-            Log.d("ArrayList: ", "" + item2);
-            ArrayAdapter<String> arrayAdapter = new ArrayAdapter<>(MainActivity.this, android.R.layout.simple_list_item_1, item2);
-            arrayAdapter.notifyDataSetChanged();
-            list.setAdapter(arrayAdapter);
-        }
-    }
-
-    public ArrayList<Item> parseMethod(XmlPullParser parser) throws XmlPullParserException, IOException {
-        ArrayList<Item> items = null;
-        int eventType = parser.getEventType();
-        Item item = null;
-
-        while (eventType != XmlPullParser.END_DOCUMENT) {
-            String name;
-            switch (eventType){
-                case XmlPullParser.START_DOCUMENT:
-                    items = new ArrayList<>();
-                    break;
-                case XmlPullParser.START_TAG:
-                    name = parser.getName();
-                    if (name.equals("item")){
-                        item = new Item();
-                    } else if (item != null) {
-                        if (name.equals("title")) {
-                            item.setTitle(parser.nextText());
-                        } else if (name.equals("description")) {
-                            item.setDesc(parser.nextText());
-                        } else if (name.equals("itunes:image")) {
-                            item.setImg(parser.getAttributeValue(null, "href"));
-                        } else if (name.equals("enclosure")) {
-                            item.setLink(parser.getAttributeValue(null, "url"));
-                        }
-                    }
-                    break;
-                case XmlPullParser.END_TAG:
-                    name = parser.getName();
-                    if (name.equalsIgnoreCase("item") && item != null) {
-                        items.add(item);
-                    }
-            }
-            eventType = parser.next();
-        }
-        return items;
-    }
-
 }
