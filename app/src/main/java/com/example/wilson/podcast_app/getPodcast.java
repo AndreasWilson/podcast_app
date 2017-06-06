@@ -1,15 +1,9 @@
 package com.example.wilson.podcast_app;
 
-import android.content.Context;
-import android.content.SharedPreferences;
 import android.os.AsyncTask;
+import android.os.Parcel;
 import android.util.Log;
 import android.util.Xml;
-import android.widget.ArrayAdapter;
-
-import com.example.wilson.podcast_app.Interface.AsyncInterface;
-import com.example.wilson.podcast_app.Item;
-import com.example.wilson.podcast_app.MainActivity;
 
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
@@ -29,15 +23,19 @@ public class getPodcast extends AsyncTask<String, Void, ArrayList<Item>> {
     private ArrayList<String> item2 = new ArrayList<>();
     public AsyncInterface asyncInterface = null;
 
+
+
     //SharedPreferences sharedPreferences = getSharedPreferences("URLpref", Context.MODE_PRIVATE);
     //String podUrl = sharedPreferences.getString("podURL", null);
 
     @Override
-    protected ArrayList<Item> doInBackground(String... params) {
+    protected ArrayList<Item> doInBackground(String... urlParam) {
+
+        String urlString = urlParam[0];
 
         URL url = null;
         try {
-            url = new URL("http://funhaus.roosterteeth.com/show/dude-soup/feed/mp3");
+            url = new URL(urlString);
             HttpURLConnection http = (HttpURLConnection) url.openConnection();
 
             int responseCode = http.getResponseCode();
@@ -63,13 +61,15 @@ public class getPodcast extends AsyncTask<String, Void, ArrayList<Item>> {
     @Override
     protected void onPostExecute(ArrayList<Item> item) {
 
-        for (int i = 0; i < items.size(); i++) {
+        /*for (int i = 0; i < items.size(); i++) {
             item2.add(items.get(i).getTitle());
-        }
+            item2.add(items.get(i).getLink());
+        }*/
 
         Log.d("ArrayList: ", "" + item2);
         if (asyncInterface != null) {
-            asyncInterface.processFinish(item2);
+            asyncInterface.processFinish(item);
+            System.out.println("asyncinterface not null");
         }
     }
 
@@ -87,7 +87,7 @@ public class getPodcast extends AsyncTask<String, Void, ArrayList<Item>> {
                 case XmlPullParser.START_TAG:
                     name = parser.getName();
                     if (name.equals("item")){
-                        item = new Item();
+                        item = new Item(Parcel.obtain());
                     } else if (item != null) {
                         if (name.equals("title")) {
                             item.setTitle(parser.nextText());

@@ -4,16 +4,14 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.media.AudioManager;
 import android.media.Image;
-import android.media.MediaPlayer;
 import android.os.AsyncTask;
+import android.support.v4.app.FragmentTransaction;
+import android.support.v4.app.Fragment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
-import android.util.Xml;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
@@ -23,82 +21,88 @@ import android.widget.EditText;
 import android.widget.GridView;
 import android.widget.ImageView;
 import android.widget.ListView;
-import android.widget.SeekBar;
 import android.widget.TextView;
 
-import com.example.wilson.podcast_app.Interface.AsyncInterface;
 import com.nostra13.universalimageloader.core.ImageLoader;
 import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
+import com.sothree.slidinguppanel.SlidingUpPanelLayout;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.xmlpull.v1.XmlPullParser;
-import org.xmlpull.v1.XmlPullParserException;
 
-import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.List;
-
-import static android.R.attr.delay;
-import static android.R.attr.startDelay;
 
 public class MainActivity extends AppCompatActivity implements AsyncInterface {
 
     EditText editText;
     TextView podcastName;
-    ListView list;
+    ImageView imgSearch;
     ArrayList<Item> items = new ArrayList<>();
-    ArrayList<iTunesItem> itunesList;
-    String text = "";
-    String Podcast_url;
-    String imageUri;
-    String trackName;
-    String podUrl, podID;
-    ImageView imageView;
+    ArrayList<iTunesItem> itunesList, itunesList2;
+    String text = "", trackName, Podcast_url, imageUri, podUrl, podID;
     GridView gridView;
     Button btnStore;
+    private SlidingUpPanelLayout mLayout;
+    private static final String TAG = "MainActivity";
+    ImageLoader imageLoader;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        Button button = (Button) findViewById(R.id.button);
         Button btnSearch = (Button) findViewById(R.id.search_btn);
-        list = (ListView) findViewById(R.id.list123);
         editText = (EditText) findViewById(R.id.editText);
-        //imageView = (ImageView) findViewById(R.id.imageView);
         podcastName = (TextView) findViewById(R.id.textViewPodcastName);
         gridView = (GridView) findViewById(R.id.gridView);
         btnStore = (Button) findViewById(R.id.btnSave);
+        imgSearch = (ImageView) findViewById(R.id.imageViewSearch);
         getDataBase();
-        getPodcast podcast = new getPodcast();
-        podcast.asyncInterface = this;
+        ImageLoaderConfiguration config = new ImageLoaderConfiguration.Builder(this).build();
+        ImageLoader.getInstance().init(config);
+        imageLoader = ImageLoader.getInstance();
+
+        mLayout = (SlidingUpPanelLayout) findViewById(R.id.sliding_layoutMain);
+        mLayout.addPanelSlideListener(new SlidingUpPanelLayout.PanelSlideListener() {
+            @Override
+            public void onPanelSlide(View panel, float slideOffset) {
+                Log.i(TAG, "onPanelSlide, offset " + slideOffset);
+            }
+
+            @Override
+            public void onPanelStateChanged(View panel, SlidingUpPanelLayout.PanelState previousState, SlidingUpPanelLayout.PanelState newState) {
+                Log.i(TAG, "onPanelStateChanged " + newState);
+            }
+        });
+        mLayout.setFadeOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                mLayout.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
+            }
+        });
 
         //Removes the keyboard
         View view = this.getCurrentFocus();
         if (view != null) {
-            //InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
-            //imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
-
-            InputMethodManager imm = (InputMethodManager) getSystemService(
-                    INPUT_METHOD_SERVICE);
+            InputMethodManager imm = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
             imm.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(), 0);
         }
 
+        //Todo: trackname and the other strings are null on the first click, but not the second
         btnSearch.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                //Intent i = new Intent(MainActivity.this, sliderTest.class);
+                //startActivity(i);
                 text = editText.getText().toString();
                 podcastSearch pS = new podcastSearch();
                 pS.execute();
-                podcastName.setText(trackName);
-                //gridView.setAdapter(new ImageAdapter(MainActivity.this, imageUri));
+
                 btnStore.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
@@ -117,55 +121,76 @@ public class MainActivity extends AppCompatActivity implements AsyncInterface {
                     }
                 });
 
-                System.out.println(imageUri);
+                //System.out.println(imageUri);
             }
         });
 
-
-        /*button.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                SharedPreferences sharedPreferences = getSharedPreferences("URLpref", Context.MODE_PRIVATE);
-                podUrl = sharedPreferences.getString("podURL", null);
-                System.out.println("URL: " + podUrl);
-                podcastGet pod = new podcastGet();
-                pod.execute();
-            }
-        });*/
-
-        list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Log.d("Position" , "" + position);
+                DBHelper dbHelper = new DBHelper(MainActivity.this);
+                itunesList2 = new ArrayList<>();
+                itunesList2.addAll(dbHelper.getAllItems());
+                iTunesItem item;
+                item = itunesList2.get(position);
+                System.out.println(item.getUrl());
+                String urlParam = item.getUrl();
 
-                Intent i = new Intent(MainActivity.this, PlayPodcast.class);
-                i.putExtra("MediaStream", items.get(position).getLink());
-                i.putExtra("MediaName", items.get(position).getTitle());
-                i.putExtra("MediaPic", items.get(position).getImg());
-                startActivity(i);
+                //dbHelper.removeSingleContact(item.getName());
+
+                SharedPreferences sharedPref = getSharedPreferences("sharedPref", Context.MODE_PRIVATE);
+                SharedPreferences.Editor editor = sharedPref.edit();
+                editor.putString("podcastImg", item.getImg());
+                editor.apply();
+                asyncPodcast(urlParam);
+                dbHelper.close();
             }
         });
+    }
+    @Override
+    public void onBackPressed() {
+        if (mLayout != null &&
+                (mLayout.getPanelState() == SlidingUpPanelLayout.PanelState.EXPANDED || mLayout.getPanelState() == SlidingUpPanelLayout.PanelState.ANCHORED)) {
+            mLayout.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
+        } else {
+            super.onBackPressed();
+        }
+    }
+
+    public void asyncPodcast(String urlParam) {
+        getPodcast podcast = new getPodcast();
+        podcast.asyncInterface = this;
+        podcast.execute(urlParam);
+    }
+    //Set podcasts from async to list
+    @Override
+    public void processFinish(ArrayList<Item> output) {
+        System.out.println("processFinish main");
+        System.out.println("main" + output);
+
+        Bundle bundle = new Bundle();
+        bundle.putParcelableArrayList("valuesArray", output);
+        PodcastFragment fragment = new PodcastFragment();
+        fragment.setArguments(bundle);
+        FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
+        fragmentTransaction.replace(android.R.id.content, fragment);
+        fragmentTransaction.addToBackStack(null);
+        fragmentTransaction.commit();
     }
     private void getDataBase() {
         DBHelper dbHelper = new DBHelper(MainActivity.this);
         itunesList = new ArrayList<iTunesItem>();
 
-        itunesList = dbHelper.getAllItems();
+        itunesList.addAll(dbHelper.getAllItems());
         ImageAdapter adapter = new ImageAdapter(MainActivity.this, itunesList);
         gridView.setAdapter(adapter);
+        dbHelper.close();
     }
 
-    @Override
-    public void processFinish(ArrayList<String> output) {
-        ArrayAdapter<String> arrayAdapter = new ArrayAdapter<>(MainActivity.this, android.R.layout.simple_list_item_1, output);
-        arrayAdapter.notifyDataSetChanged();
-        list.setAdapter(arrayAdapter);
-    }
-
-    private class podcastSearch extends AsyncTask<String, Void, Void> {
+    private class podcastSearch extends AsyncTask<String, Void, String> {
 
         @Override
-        protected Void doInBackground(String... params) {
+        protected String doInBackground(String... params) {
 
             String response2 = "";
             URL url = null;
@@ -176,14 +201,26 @@ public class MainActivity extends AppCompatActivity implements AsyncInterface {
                 Log.d("Response: ", "" + response);
                 http.connect();
 
-
                 String line;
                 BufferedReader br = new BufferedReader(new InputStreamReader(http.getInputStream()));
                 while ((line = br.readLine()) != null) {
                     response2 += line;
                 }
+                br.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
 
-                JSONObject jsonObject = new JSONObject(response2);
+            return response2;
+        }
+
+        @Override
+        protected void onPostExecute(String searchResp) {
+            super.onPostExecute(searchResp);
+
+            JSONObject jsonObject = null;
+            try {
+                jsonObject = new JSONObject(searchResp);
                 JSONArray itunesResults = jsonObject.getJSONArray("results");
 
                 for (int i = 0; i < itunesResults.length(); i++) {
@@ -195,18 +232,16 @@ public class MainActivity extends AppCompatActivity implements AsyncInterface {
                     podID = c.getString("trackId");
                     System.out.println(Podcast_url);
                     System.out.println(imageUri);
+                    System.out.println(trackName);
                 }
-                System.out.println(response2);
-
-
-                br.close();
-            } catch (IOException e) {
+                System.out.println(searchResp);
+            } catch (JSONException e) {
                 e.printStackTrace();
-            } catch (JSONException Je) {
-                Je.printStackTrace();
+                podcastName.setText("Podcast not found");
             }
 
-            return null;
+            podcastName.setText(trackName);
+            imageLoader.displayImage(imageUri, imgSearch);
         }
     }
 }

@@ -77,10 +77,10 @@ public class DBHelper extends SQLiteOpenHelper{
                 tunesItem.setImg(img);
                 tunesItem.setUrl(url);
 
-                Log.v("DBHelper: ", "Name: " + name);
-                Log.v("DBHelper: ", "Code: " + id);
-                Log.v("DBHelper: ", "Email: " + img);
-                Log.v("DBHelper: ", "Address: " + url);
+                //Log.v("DBHelper: ", "Name: " + name);
+                //Log.v("DBHelper: ", "Code: " + id);
+                //Log.v("DBHelper: ", "Email: " + img);
+                //Log.v("DBHelper: ", "Address: " + url);
 
                 iTunesItems.add(tunesItem);
             }
@@ -115,5 +115,16 @@ public class DBHelper extends SQLiteOpenHelper{
 
         }
         return tunesItem;
+    }
+    public void removeSingleContact(String title) {
+        //Open the database
+        SQLiteDatabase database = this.getWritableDatabase();
+
+        //Execute sql query to remove from database
+        //NOTE: When removing by String in SQL, value must be enclosed with ''
+        database.execSQL("DELETE FROM " + TABLE_NAME + " WHERE " + KEY_NAME + "= '" + title + "'");
+        System.out.println("Deleted");
+        //Close the database
+        database.close();
     }
 }

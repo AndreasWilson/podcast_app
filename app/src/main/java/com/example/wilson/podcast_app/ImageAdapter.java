@@ -5,9 +5,11 @@ import android.content.SharedPreferences;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.BaseAdapter;
 import android.widget.GridView;
 import android.widget.ImageView;
+import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
@@ -51,13 +53,15 @@ public class ImageAdapter extends BaseAdapter {
 
     @Override
     public View getView(final int position, View convertView, ViewGroup parent) {
-        ImageLoaderConfiguration config = new ImageLoaderConfiguration.Builder(mContext).build();
-        ImageLoader.getInstance().init(config);
-        ImageLoader imageLoader = ImageLoader.getInstance();
+        //ImageLoaderConfiguration config = new ImageLoaderConfiguration.Builder(mContext).build();
+        //ImageLoader.getInstance().init(config);
+        //ImageLoader imageLoader = ImageLoader.getInstance();
+        //if (!imageLoader.isInited())
         if (convertView == null) {
             convertView = inflater.inflate(R.layout.layout_grid_item, null);
         }
         TextView textView = (TextView) convertView.findViewById(R.id.tv_emp_id);
+        textView.setTextSize(20);
         /*ImageView imageView = (ImageView) convertView.findViewById(R.id.imageView);
         imageView.setLayoutParams(new GridView.LayoutParams(400, 400));
         imageView.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
@@ -70,25 +74,7 @@ public class ImageAdapter extends BaseAdapter {
 
         iTunesItem item = new iTunesItem();
         item = items.get(position);
-        textView.setText("Name: " + item.getName());
-
-        textView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                iTunesItem i = new iTunesItem();
-                System.out.println("Gridview: " + items.get(position).getName());
-                //MainActivity main = new MainActivity();
-                //main.podUrl = (items.get(position).getUrl());
-                podURL = (items.get(position).getUrl());
-                System.out.println(items.get(position).getUrl());
-                SharedPreferences sharedPreferences = mContext.getSharedPreferences("URLpref", Context.MODE_PRIVATE);
-                SharedPreferences.Editor editor = sharedPreferences.edit();
-                editor.putString("podURL", podURL);
-                editor.apply();
-                getPodcast podcast = new getPodcast();
-                podcast.execute();
-            }
-        });
+        textView.setText(item.getName());
         //imageLoader.displayImage(item.getImg(), imageView);
 
         return convertView;
