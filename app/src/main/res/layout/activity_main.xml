@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.sothree.slidinguppanel.SlidingUpPanelLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/sliding_layoutMain"
@@ -22,70 +22,17 @@
         android:paddingRight="@dimen/activity_horizontal_margin"
         android:paddingTop="@dimen/activity_vertical_margin">
 
-        <EditText
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:inputType="textPersonName"
-            android:hint="Search for podcast"
-            android:text=""
-            android:ems="10"
-            android:id="@+id/editText"
-            android:layout_alignParentTop="true"
-            android:layout_alignParentStart="true" />
-
-        <Button
-            android:text="Search"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:id="@+id/search_btn"
-            android:layout_alignParentTop="true"
-            android:layout_alignParentEnd="true" />
-
         <GridView
             android:id="@+id/gridView"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:verticalSpacing="40dp"
-            android:columnWidth="100dp"
+            android:columnWidth="80dp"
             android:numColumns="2"
             android:stretchMode="columnWidth"
-            android:layout_marginTop="84dp"
-            android:layout_below="@+id/btnSave"
-            android:layout_alignParentStart="true" />
-
-        <Button
-            android:id="@+id/btnSave"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Save"
-            android:layout_below="@+id/search_btn"
-            android:layout_alignParentEnd="true" />
-
-        <TextView
-            android:id="@+id/textViewPodcastName"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_above="@+id/gridView"
-            android:layout_alignParentStart="true"
-            android:layout_alignTop="@+id/btnSave"
-            android:layout_marginStart="50dp"
-            android:layout_toStartOf="@+id/btnSave"
-            android:textSize="16sp"
-            android:text="" />
-
-        <ImageView
-            android:id="@+id/imageViewSearch"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
-            android:layout_alignTop="@+id/textViewPodcastName"
             android:layout_alignParentStart="true" />
 
 
     </RelativeLayout>
 
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
-
-</com.sothree.slidinguppanel.SlidingUpPanelLayout>
+</RelativeLayout>

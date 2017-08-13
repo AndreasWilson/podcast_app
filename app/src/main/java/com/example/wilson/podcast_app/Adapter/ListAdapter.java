@@ -1,4 +1,4 @@
-package com.example.wilson.podcast_app;
+package com.example.wilson.podcast_app.Adapter;
 
 import android.app.Activity;
 import android.content.Context;
@@ -8,6 +8,8 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
+
+import com.example.wilson.podcast_app.R;
 
 import java.util.ArrayList;
 

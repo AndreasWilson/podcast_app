@@ -1,4 +1,6 @@
-package com.example.wilson.podcast_app;
+package com.example.wilson.podcast_app.AsyncInterface;
+
+import com.example.wilson.podcast_app.Objects.Item;
 
 import java.util.ArrayList;
 

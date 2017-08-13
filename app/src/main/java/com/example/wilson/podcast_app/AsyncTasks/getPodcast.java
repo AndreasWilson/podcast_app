@@ -1,9 +1,12 @@
-package com.example.wilson.podcast_app;
+package com.example.wilson.podcast_app.AsyncTasks;
 
 import android.os.AsyncTask;
 import android.os.Parcel;
 import android.util.Log;
 import android.util.Xml;
+
+import com.example.wilson.podcast_app.AsyncInterface.AsyncInterface;
+import com.example.wilson.podcast_app.Objects.Item;
 
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;

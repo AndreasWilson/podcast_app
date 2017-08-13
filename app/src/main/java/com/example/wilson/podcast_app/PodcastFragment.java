@@ -15,7 +15,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ListView;
@@ -23,13 +22,13 @@ import android.widget.MediaController;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import com.example.wilson.podcast_app.Objects.Item;
 import com.nostra13.universalimageloader.core.ImageLoader;
 import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
 import com.sothree.slidinguppanel.SlidingUpPanelLayout;
 
 import java.util.ArrayList;
 import java.util.Locale;
-import java.util.StringTokenizer;
 import java.util.concurrent.TimeUnit;
 
 
@@ -53,7 +52,6 @@ public class PodcastFragment extends Fragment implements MediaController.MediaPl
     private Handler myHandler = new Handler();
     private double startTime = 0;
     private double finalTime = 0;
-    public static int oneTimeOnly = 0;
     private boolean musicBound = false;
     ServiceConnection musicConnection;
 
@@ -131,6 +129,22 @@ public class PodcastFragment extends Fragment implements MediaController.MediaPl
                 }
             }
         });
+        skipNext.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                playPrev();
+                playMain.setImageResource(R.drawable.ic_pause_black_24dp);
+                playButton.setBackgroundResource(R.drawable.ic_pause_black_24dp);
+            }
+        });
+        skipPrev.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                playNext();
+                playMain.setImageResource(R.drawable.ic_pause_black_24dp);
+                playButton.setBackgroundResource(R.drawable.ic_pause_black_24dp);
+            }
+        });
 
 
         //MediaConnection and bind
@@ -157,7 +171,7 @@ public class PodcastFragment extends Fragment implements MediaController.MediaPl
         //ListAdapter adapter = new ListAdapter(getActivity(), output);
         //list.setAdapter(adapter);
         ArrayList<String> titleList = new ArrayList<>();
-        final ArrayList<String> linkList = new ArrayList<>();
+        ArrayList<String> linkList = new ArrayList<>();
         for (int i = 0; i < output.size(); i++) {
             titleList.add(output.get(i).getTitle());
             linkList.add(output.get(i).getLink());
@@ -175,8 +189,10 @@ public class PodcastFragment extends Fragment implements MediaController.MediaPl
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 Log.d("Position" , "" + position);
+
                 serviceIntent = new Intent(getActivity(), MediaService.class);
-                serviceIntent.putExtra("MediaLink", output.get(position).getLink());
+                serviceIntent.putParcelableArrayListExtra("LinkArrays", output);
+                serviceIntent.putExtra("Position", position);
                 getActivity().startService(serviceIntent);
                 getActivity().bindService(serviceIntent, musicConnection, Context.BIND_AUTO_CREATE);
                 System.out.println("Starting Service from fragment");
@@ -189,14 +205,8 @@ public class PodcastFragment extends Fragment implements MediaController.MediaPl
                 imageLoader.displayImage(podImg, imgSmall);
 
                 finalTime = getDuration();
-                startTime = getCurrentPosition();
-                if (oneTimeOnly == 0) {
-                    oneTimeOnly = 1;
-                }
-                seekBar.setMax((int) finalTime);
+                //startTime = getCurrentPosition();
                 myHandler.postDelayed(UpdateSongTime, 100);
-                System.out.println("Podcast duration" + finalTime);
-                System.out.println("Podcast start" + startTime);
 
                 Log.d("Position" , "" + output.get(position).getTitle());
                 Log.d("Position" , "" + output.get(position).getImg());
@@ -223,8 +233,6 @@ public class PodcastFragment extends Fragment implements MediaController.MediaPl
             }
         });
 
-
-
         Log.d("CustomAdapter", "PodcastFragment onCreateView successful");
 
         return rootView;
@@ -233,6 +241,7 @@ public class PodcastFragment extends Fragment implements MediaController.MediaPl
     private Runnable UpdateSongTime = new Runnable() {
         public void run() {
             startTime = getCurrentPosition();
+            finalTime = getDuration();
             timeText.setText(String.format(Locale.getDefault(), "%d:%d",
                     TimeUnit.MILLISECONDS.toMinutes((long) startTime),
                     TimeUnit.MILLISECONDS.toSeconds((long) startTime) -
@@ -247,10 +256,19 @@ public class PodcastFragment extends Fragment implements MediaController.MediaPl
             );
             seekBar.setProgress((int)startTime);
             myHandler.postDelayed(this, 1000);
+
         }
     };
 
 
+    public void playNext() {
+        mediaService.playNext();
+        nameText.setText(mediaService.getTitle());
+    }
+    public void playPrev() {
+        mediaService.playPrev();
+        nameText.setText(mediaService.getTitle());
+    }
 
     @Override
     public void start() {
@@ -264,7 +282,8 @@ public class PodcastFragment extends Fragment implements MediaController.MediaPl
 
     @Override
     public int getDuration() {
-        if (mediaService != null && musicBound) {
+        if (mediaService != null && musicBound && mediaService.isPrepared()) {
+            seekBar.setMax((int) finalTime);
             return mediaService.getDur();
         } else return 0;
     }

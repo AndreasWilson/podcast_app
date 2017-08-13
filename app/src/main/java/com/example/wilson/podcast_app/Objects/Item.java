@@ -1,4 +1,4 @@
-package com.example.wilson.podcast_app;
+package com.example.wilson.podcast_app.Objects;
 
 import android.os.Parcel;
 import android.os.Parcelable;

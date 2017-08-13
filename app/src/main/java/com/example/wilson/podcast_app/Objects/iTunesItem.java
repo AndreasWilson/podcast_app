@@ -1,4 +1,4 @@
-package com.example.wilson.podcast_app;
+package com.example.wilson.podcast_app.Objects;
 
 /**
  * Created by andre on 26.03.2017.

@@ -1,4 +1,4 @@
-package com.example.wilson.podcast_app;
+package com.example.wilson.podcast_app.MediaPlayerSlider;
 
 import android.content.Context;
 import android.widget.MediaController;

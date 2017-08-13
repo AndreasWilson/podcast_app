@@ -17,8 +17,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".PlayPodcast" />
-        <activity android:name=".sliderTest" />
+        <activity android:name=".MediaPlayerSlider.sliderTest" />
 
         <service
             android:name="com.example.wilson.podcast_app.MediaService"/>

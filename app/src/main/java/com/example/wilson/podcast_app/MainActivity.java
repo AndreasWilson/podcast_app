@@ -1,17 +1,21 @@
 package com.example.wilson.podcast_app;
 
+import android.app.Dialog;
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteDatabase;
-import android.media.Image;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.AsyncTask;
 import android.support.v4.app.FragmentTransaction;
-import android.support.v4.app.Fragment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.SearchView;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
@@ -23,8 +27,15 @@ import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import com.example.wilson.podcast_app.Adapter.ImageAdapter;
+import com.example.wilson.podcast_app.Adapter.SearchListAdapter;
+import com.example.wilson.podcast_app.AsyncInterface.AsyncInterface;
+import com.example.wilson.podcast_app.AsyncTasks.getPodcast;
+import com.example.wilson.podcast_app.DataBase.DBHelper;
+import com.example.wilson.podcast_app.Objects.Item;
+import com.example.wilson.podcast_app.Objects.iTunesItem;
+import com.example.wilson.podcast_app.Objects.iTunesSearch;
 import com.nostra13.universalimageloader.core.ImageLoader;
-import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
 import com.sothree.slidinguppanel.SlidingUpPanelLayout;
 
 import org.json.JSONArray;
@@ -40,51 +51,22 @@ import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity implements AsyncInterface {
 
-    EditText editText;
     TextView podcastName;
     ImageView imgSearch;
     ArrayList<Item> items = new ArrayList<>();
     ArrayList<iTunesItem> itunesList, itunesList2;
-    String text = "", trackName, Podcast_url, imageUri, podUrl, podID;
+    ArrayList<iTunesSearch> iTunesList;
     GridView gridView;
-    Button btnStore;
-    private SlidingUpPanelLayout mLayout;
+    ListView searchList;
     private static final String TAG = "MainActivity";
-    ImageLoader imageLoader;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        Button btnSearch = (Button) findViewById(R.id.search_btn);
-        editText = (EditText) findViewById(R.id.editText);
-        podcastName = (TextView) findViewById(R.id.textViewPodcastName);
+
         gridView = (GridView) findViewById(R.id.gridView);
-        btnStore = (Button) findViewById(R.id.btnSave);
-        imgSearch = (ImageView) findViewById(R.id.imageViewSearch);
         getDataBase();
-        ImageLoaderConfiguration config = new ImageLoaderConfiguration.Builder(this).build();
-        ImageLoader.getInstance().init(config);
-        imageLoader = ImageLoader.getInstance();
-
-        mLayout = (SlidingUpPanelLayout) findViewById(R.id.sliding_layoutMain);
-        mLayout.addPanelSlideListener(new SlidingUpPanelLayout.PanelSlideListener() {
-            @Override
-            public void onPanelSlide(View panel, float slideOffset) {
-                Log.i(TAG, "onPanelSlide, offset " + slideOffset);
-            }
-
-            @Override
-            public void onPanelStateChanged(View panel, SlidingUpPanelLayout.PanelState previousState, SlidingUpPanelLayout.PanelState newState) {
-                Log.i(TAG, "onPanelStateChanged " + newState);
-            }
-        });
-        mLayout.setFadeOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                mLayout.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
-            }
-        });
 
         //Removes the keyboard
         View view = this.getCurrentFocus();
@@ -92,39 +74,6 @@ public class MainActivity extends AppCompatActivity implements AsyncInterface {
             InputMethodManager imm = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
             imm.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(), 0);
         }
-
-        //Todo: trackname and the other strings are null on the first click, but not the second
-        btnSearch.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                //Intent i = new Intent(MainActivity.this, sliderTest.class);
-                //startActivity(i);
-                text = editText.getText().toString();
-                podcastSearch pS = new podcastSearch();
-                pS.execute();
-
-                btnStore.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        DBHelper dbHelper = new DBHelper(MainActivity.this);
-                        SQLiteDatabase db = dbHelper.getWritableDatabase();
-                        ContentValues values = new ContentValues();
-                        values.put("id", podID);
-                        values.put("name", trackName);
-                        values.put("image", imageUri);
-                        values.put("url", Podcast_url);
-
-                        long newRowId = db.insertWithOnConflict("PodCasts", null, values, SQLiteDatabase.CONFLICT_REPLACE);
-                        System.out.println("In DataBase");
-                        getDataBase();
-                        db.close();
-                    }
-                });
-
-                //System.out.println(imageUri);
-            }
-        });
-
         gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
@@ -147,14 +96,50 @@ public class MainActivity extends AppCompatActivity implements AsyncInterface {
             }
         });
     }
+    public void putInBD(int position) {
+        DBHelper dbHelper = new DBHelper(MainActivity.this);
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put("id", iTunesList.get(position).getPodcastID());
+        values.put("name", iTunesList.get(position).getName());
+        values.put("image", iTunesList.get(position).getImageUrl());
+        values.put("url", iTunesList.get(position).getPodcastUrl());
+
+        db.insertWithOnConflict("PodCasts", null, values, SQLiteDatabase.CONFLICT_REPLACE);
+        System.out.println("In DataBase");
+        getDataBase();
+        db.close();
+    }
+
     @Override
-    public void onBackPressed() {
-        if (mLayout != null &&
-                (mLayout.getPanelState() == SlidingUpPanelLayout.PanelState.EXPANDED || mLayout.getPanelState() == SlidingUpPanelLayout.PanelState.ANCHORED)) {
-            mLayout.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
-        } else {
-            super.onBackPressed();
-        }
+    public boolean onCreateOptionsMenu(Menu menu) {
+        final MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu_search, menu);
+        MenuItem item = menu.findItem(R.id.menuSearch);
+        SearchView searchView = (SearchView) item.getActionView();
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                podcastSearch pS = new podcastSearch();
+                pS.execute(query);
+
+                Dialog dialog = new Dialog(MainActivity.this);
+                dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.argb(100, 100, 100, 100)));
+                dialog.setContentView(R.layout.search_list_view);
+                searchList = (ListView) dialog.findViewById(R.id.searchList);
+                System.out.println("Dialog");
+                dialog.setCancelable(true);
+                dialog.show();
+
+                return false;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                return false;
+            }
+        });
+        return super.onCreateOptionsMenu(menu);
     }
 
     public void asyncPodcast(String urlParam) {
@@ -179,7 +164,7 @@ public class MainActivity extends AppCompatActivity implements AsyncInterface {
     }
     private void getDataBase() {
         DBHelper dbHelper = new DBHelper(MainActivity.this);
-        itunesList = new ArrayList<iTunesItem>();
+        itunesList = new ArrayList<>();
 
         itunesList.addAll(dbHelper.getAllItems());
         ImageAdapter adapter = new ImageAdapter(MainActivity.this, itunesList);
@@ -190,12 +175,13 @@ public class MainActivity extends AppCompatActivity implements AsyncInterface {
     private class podcastSearch extends AsyncTask<String, Void, String> {
 
         @Override
-        protected String doInBackground(String... params) {
+        protected String doInBackground(String... query) {
 
+            String termText = query[0];
             String response2 = "";
             URL url = null;
             try {
-                url = new URL("https://itunes.apple.com/search?term=" + text);
+                url = new URL("https://itunes.apple.com/search?term=" + termText +"&media=podcast&limit=10");
                 HttpURLConnection http = (HttpURLConnection) url.openConnection();
                 int response = http.getResponseCode();
                 Log.d("Response: ", "" + response);
@@ -218,30 +204,35 @@ public class MainActivity extends AppCompatActivity implements AsyncInterface {
         protected void onPostExecute(String searchResp) {
             super.onPostExecute(searchResp);
 
+            iTunesList = new ArrayList<>();
             JSONObject jsonObject = null;
             try {
                 jsonObject = new JSONObject(searchResp);
                 JSONArray itunesResults = jsonObject.getJSONArray("results");
 
                 for (int i = 0; i < itunesResults.length(); i++) {
+                    iTunesSearch iTunes = new iTunesSearch();
                     JSONObject c = itunesResults.getJSONObject(i);
 
-                    Podcast_url = c.getString("feedUrl");
-                    imageUri = c.getString("artworkUrl600");
-                    trackName = c.getString("trackName");
-                    podID = c.getString("trackId");
-                    System.out.println(Podcast_url);
-                    System.out.println(imageUri);
-                    System.out.println(trackName);
+                    iTunes.setName(c.optString("trackName"));
+                    iTunes.setPodcastUrl(c.optString("feedUrl"));
+                    iTunes.setImageUrl(c.optString("artworkUrl600"));
+                    iTunes.setPodcastID(c.optString("trackId"));
+
+                    System.out.println(iTunes.getName());
+
+                    iTunesList.add(iTunes);
                 }
                 System.out.println(searchResp);
             } catch (JSONException e) {
                 e.printStackTrace();
                 podcastName.setText("Podcast not found");
             }
-
-            podcastName.setText(trackName);
-            imageLoader.displayImage(imageUri, imgSearch);
+            if (iTunesList != null) {
+                SearchListAdapter adapter = new SearchListAdapter(MainActivity.this, iTunesList);
+                searchList.setAdapter(adapter);
+                System.out.println("itunesList not null");
+            }
         }
     }
 }

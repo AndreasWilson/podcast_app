@@ -6,20 +6,21 @@ import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.os.Binder;
 import android.os.IBinder;
-import android.provider.MediaStore;
 import android.util.Log;
+
+import com.example.wilson.podcast_app.Objects.Item;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.StringTokenizer;
 
 public class MediaService extends Service implements MediaPlayer.OnCompletionListener, MediaPlayer.OnPreparedListener, MediaPlayer.OnErrorListener,
         MediaPlayer.OnSeekCompleteListener, MediaPlayer.OnInfoListener, MediaPlayer.OnBufferingUpdateListener {
 
     private MediaPlayer mediaPlayer;
-    private String position;
+    private int position;
     private final IBinder musicBind = new MusicBinder();
-    private ArrayList<String> podLinkList;
+    private ArrayList<Item> podLinkList;
+    private boolean isPrepared = false;
 
     //onCreate
     @Override
@@ -37,24 +38,14 @@ public class MediaService extends Service implements MediaPlayer.OnCompletionLis
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null) {
             if (mediaPlayer != null) {
-                    position = intent.getExtras().getString("MediaLink");
-
-                    mediaPlayer.reset();
-                    if (!mediaPlayer.isPlaying()) {
-                        try {
-                            mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-                            mediaPlayer.setDataSource(position);
-                            mediaPlayer.prepareAsync();
-                            System.out.println("Service start");
-                        } catch (IllegalArgumentException e) {
-                            e.printStackTrace();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
+                isPrepared = false;
+                setSong(intent.getExtras().getInt("Position"));
+                podLinkList = intent.getParcelableArrayListExtra("LinkArrays");
+                System.out.println("Position: " + position);
+                startPod();
             }
         }
-        return START_STICKY;
+        return START_REDELIVER_INTENT;
     }
 
     @Override
@@ -87,7 +78,8 @@ public class MediaService extends Service implements MediaPlayer.OnCompletionLis
 
     @Override
     public void onCompletion(MediaPlayer mp) {
-        stopSelf();
+        mp.reset();
+        //playNext();
     }
 
     @Override
@@ -110,7 +102,7 @@ public class MediaService extends Service implements MediaPlayer.OnCompletionLis
     @Override
     public void onPrepared(MediaPlayer mp) {
         playPod();
-        System.out.println(mediaPlayer.getDuration());
+        isPrepared = true;
     }
 
     @Override
@@ -150,7 +142,46 @@ public class MediaService extends Service implements MediaPlayer.OnCompletionLis
     public boolean isPlay(){
         return mediaPlayer.isPlaying();
     }
-    public void setLinkList(ArrayList<String> podList) {
-        podLinkList = podList;
+    public boolean isPrepared() {
+        return isPrepared;
     }
+    public void playNext() {
+        position++;
+        if (position >= podLinkList.size()) {
+            position = 0;
+        }
+        System.out.println("Position: " + position);
+        startPod();
+    }
+    public void playPrev() {
+        position--;
+        if (position < 0) {
+            position = podLinkList.size() - 1;
+        }
+        System.out.println("Position: " + position);
+        startPod();
+    }
+    public void setSong(int songIndex){
+        position = songIndex;
+    }
+    public String getTitle() {
+        return podLinkList.get(position).getTitle();
+    }
+    public void startPod() {
+        mediaPlayer.reset();
+        isPrepared = false;
+        if (!mediaPlayer.isPlaying()) {
+            try {
+                mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+                mediaPlayer.setDataSource(podLinkList.get(position).getLink());
+                mediaPlayer.prepareAsync();
+                System.out.println("Service start");
+            } catch (IllegalArgumentException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
 }
